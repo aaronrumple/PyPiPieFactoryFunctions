@@ -1,0 +1,47 @@
+flowchart TD
+    A[Start] --> B[Validate inputs]
+    B --> C[Detect IronPython/Python2 features]
+    C --> D{engine == auto?}
+    D -- Yes --> E{Likely IronPython/Py2?}
+    E -- Yes --> F[resolved_engine = ironpython2]
+    E -- No --> G[resolved_engine = cpython3]
+    D -- No --> H[resolved_engine = requested engine]
+
+    F --> I[Normalize text]
+    G --> I
+    H --> I
+
+    I --> J{Text empty after cleanup?}
+    J -- Yes --> K[Return empty script and report]
+    J -- No --> L[Dedent and normalize indentation]
+
+    L --> M{auto_fix?}
+    M -- No --> N[Join lines]
+    M -- Yes --> O[Run fix passes up to max_passes]
+
+    O --> P[General fixes]
+    P --> Q{Resolved engine}
+    Q -- cpython3 --> R[Modernize syntax and builtins]
+    Q -- ironpython3 --> S[Modernize syntax, preserve clr/System]
+    Q -- ironpython2 --> T[Preserve Python2 style mostly]
+    Q -- ironpython --> U[Conservative IronPython preservation]
+
+    R --> V[Re-normalize indentation]
+    S --> V
+    T --> V
+    U --> V
+
+    V --> W{Any changes?}
+    W -- Yes --> O
+    W -- No --> N
+
+    N --> X{validate_python?}
+    X -- No --> Y[Return script, fixes, report]
+    X -- Yes --> Z{resolved_engine == ironpython2?}
+    Z -- Yes --> AA[Validate modernized preview with ast.parse]
+    Z -- No --> AB[Validate final script with ast.parse]
+
+    AA --> AC{Valid?}
+    AB --> AC
+    AC -- No --> AD[Raise ScriptFormatError]
+    AC -- Yes --> Y
